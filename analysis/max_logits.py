@@ -260,7 +260,7 @@ class OODEvaluator:
             if return_preds:
                 predictions.extend([preds.cpu().numpy()])
             
-            anomaly_score.extend([max_logit.cpu().numpy()])
+            anomaly_score.extend([-max_logit.cpu().numpy()])
 
         ood_gts = np.array(ood_gts)
         anomaly_score = np.array(anomaly_score)
