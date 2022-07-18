@@ -19,14 +19,10 @@ class MaxLogitsAnalyzer:
     def __init__(
         self, 
         model: nn.Module, 
-        ckpt_path: str, 
-        model_ckpt_loader: Callable,
         inference_func: Callable,
-        config: Optional[dict]
     ):
         
-        self.model = model_ckpt_loader(model, ckpt_path, config)
-        self.config = config
+        self.model = model
         self.inference_func = inference_func
         
     
