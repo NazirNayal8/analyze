@@ -212,8 +212,8 @@ class OODEvaluator:
         ood_mask = (ood_gts == 1)
         ind_mask = (ood_gts == 0)
 
-        ood_out = -1 * anomaly_score[ood_mask]
-        ind_out = -1 * anomaly_score[ind_mask]
+        ood_out = anomaly_score[ood_mask]
+        ind_out = anomaly_score[ind_mask]
 
         ood_label = np.ones(len(ood_out))
         ind_label = np.zeros(len(ind_out))
