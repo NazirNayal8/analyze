@@ -236,7 +236,7 @@ class OODEvaluator:
 
         return result
 
-    def compute_max_logit_scores(self, loader, device=torch.device('cpu'), return_preds=False, upper_limit=2000):
+    def compute_max_logit_scores(self, loader, device=torch.device('cpu'), return_preds=False, upper_limit=450):
     
         anomaly_score = []
         ood_gts = []
@@ -281,12 +281,13 @@ class OODEvaluator:
         anomaly_score,
         class_names,
         metrics=None,
+        upper_limit=450
     ):
         
         logger = wandb.init(project=project_name, name=run_name)
 
-        self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger=logger)
-        self.log_id_maps(imgs, preds, class_names, y=None, logger=logger)
+        self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger=logger, upper_limit=upper_limit)
+        self.log_id_maps(imgs, preds, class_names, y=None, logger=logger, upper_limit=upper_limit)
         
         if metrics is not None:
             logger.log({
@@ -297,7 +298,7 @@ class OODEvaluator:
 
         wandb.finish()
 
-    def log_id_maps(self, imgs, preds, class_names, logger, y=None, upper_limit=100):
+    def log_id_maps(self, imgs, preds, class_names, logger, y=None, upper_limit=450):
     
         if isinstance(class_names, list):
             class_labels = {}
