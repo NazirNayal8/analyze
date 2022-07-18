@@ -59,7 +59,7 @@ class MaxLogitsAnalyzer:
             
         return mIoU_metric.cpu().compute()
 
-    def extract_max_logits_ood(self, loader, device=torch.device('cpu'), skip=1, **kwargs):
+    def extract_max_logits_ood(self, loader, dataset_name, device=torch.device('cpu'), skip=1, **kwargs):
 
         max_logits_id = []
         max_logits_ood = []
@@ -84,8 +84,8 @@ class MaxLogitsAnalyzer:
         df = pd.DataFrame()
 
         labels = np.concatenate([
-            np.array(["road_anomaly_ood"] * len(max_logits_ood)), 
-            np.array(["road_anomaly_id"] * len(max_logits_id))
+            np.array([f"{dataset_name}_ood"] * len(max_logits_ood)), 
+            np.array([f"{dataset_name}_id"] * len(max_logits_id))
         ])
 
         df["logits"] = np.concatenate([max_logits_ood, max_logits_id]).astype(np.float32)
@@ -100,6 +100,7 @@ class MaxLogitsAnalyzer:
         loader, 
         num_classes, 
         class_names, 
+        dataset_name,
         device=torch.device('cpu'), 
         skip=10, 
         id_skip=100, 
@@ -110,7 +111,7 @@ class MaxLogitsAnalyzer:
         max_logits_id = []
         max_logits_per_class = [[] for _ in range(num_classes)]
 
-        for x, y in tqdm(loader, desc='Cityscapes Val'):
+        for x, y in tqdm(loader, desc='Loader for an ID Dataset'):
     
             x = x.to(device)
             y = y.to(device)
@@ -136,7 +137,7 @@ class MaxLogitsAnalyzer:
 
         df = pd.DataFrame()
         df["logits"] = np.array(max_logits_id[::skip]).astype(np.float32)
-        df["labels"] = np.array(['cityscapes_id'] * len(max_logits_id[::skip]))
+        df["labels"] = np.array([f'{dataset_name}_id'] * len(max_logits_id[::skip]))
 
         if verbose:
             print("Total Number of ID pixels", len(max_logits_id))
@@ -156,7 +157,7 @@ class MaxLogitsAnalyzer:
                 sk = 10
             
             class_df["logits"] = max_logits_per_class[c][::sk]
-            class_df["labels"] = np.array([f'cityscapes_{class_name}'] * len(max_logits_per_class[c][::sk]))
+            class_df["labels"] = np.array([f'{dataset_name}_{class_name}'] * len(max_logits_per_class[c][::sk]))
             
             df = pd.concat([df, class_df], ignore_index=True)
 
