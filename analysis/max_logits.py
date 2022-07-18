@@ -280,18 +280,20 @@ class OODEvaluator:
         preds,
         anomaly_score,
         class_names,
-        metrics,
+        metrics=None,
     ):
         
         logger = wandb.init(project=project_name, name=run_name)
 
-        self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger)
-        self.log_id_maps(imgs, preds, class_names, logger=logger)
-        wandb.log({
-                'OOD_test/AUROC': metrics['auroc'],
-                'OOD_test/AUPR': metrics['aupr'],
-                'OOD_test/FPR95': metrics['fpr95'],
-            })
+        self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger=logger)
+        self.log_id_maps(imgs, preds, class_names, y=None, logger=logger)
+        
+        if metrics is not None:
+            logger.log({
+                    'OOD_test/AUROC': metrics['auroc'],
+                    'OOD_test/AUPR': metrics['aupr'],
+                    'OOD_test/FPR95': metrics['fpr95'],
+                })
 
         wandb.finish()
 
