@@ -383,13 +383,13 @@ class OODEvaluator:
             'OOD/seg_vis': novel_logs
         })
     
-    def get_imgs(self, dataset, image_mean, image_std):
+    def get_imgs(self, dataset, image_mean, image_std, out_type=np.uint8):
 
         imgs = []
         for i in range(len(dataset)):
             x, _ = dataset[i]
-            imgs.extend([unnormalize_tensor(x, np.array(image_mean), np.array(image_std)).cpu().permute(1, 2, 0).numpy()])
+            imgs.extend([unnormalize_tensor(x.float(), np.array(image_mean), np.array(image_std)).cpu().permute(1, 2, 0).numpy()])
 
-        imgs = np.array(imgs)
+        imgs = np.array(imgs).astype(out_type)
 
         return imgs
