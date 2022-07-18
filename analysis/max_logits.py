@@ -196,7 +196,7 @@ class OODEvaluator:
         return self.inference_func(self.model, x, **kwargs)
     
 
-    def calculate_ood_metrics(out, label):
+    def calculate_ood_metrics(self, out, label):
     
         fpr, tpr, _ = roc_curve(label, out)
 
