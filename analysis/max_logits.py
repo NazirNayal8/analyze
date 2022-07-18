@@ -164,7 +164,7 @@ class MaxLogitsAnalyzer:
         return df
 
 
-    def visualize_kde(self, df, bw_adjust=1, chosen_cols=None):
+    def visualize_kde(self, df, bw_adjust=1, figsize=(8,5), chosen_cols=None):
 
         if chosen_cols is not None:
             mask = df['labels'].isin(chosen_cols)
@@ -172,7 +172,7 @@ class MaxLogitsAnalyzer:
         else:
             vis_df = df
 
-        plt.figure(figsize=(8, 5))
+        plt.figure(figsize=figsize)
         sns.kdeplot(data=vis_df, x='logits', hue='labels', fill=True, common_norm=False, bw_adjust=bw_adjust)
         plt.show()
 
