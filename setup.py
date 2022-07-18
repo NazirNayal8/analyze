@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='analysis',
-    version='0.0.1',
+    version='0.0.2',
     author='Nazir Nayal',
     author_email='nnayal17@ku.edu.tr',
     description='Tools for Deep Learning Related Data Analysis',
