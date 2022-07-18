@@ -11,8 +11,11 @@ from torchmetrics import JaccardIndex
 from tqdm import tqdm
 
 import wandb
-from sklearn.metrics import roc_auc_score, roc_curve, auc, precision_recall_curve, average_precision_score
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
 from ood_metrics import fpr_at_95_tpr
+
+from .utils import unnormalize_tensor
+
 
 class MaxLogitsAnalyzer:
 
@@ -182,14 +185,10 @@ class OODEvaluator:
     def __init__(
         self, 
         model: nn.Module, 
-        ckpt_path: str, 
-        model_ckpt_loader: Callable,
         inference_func: Callable,
-        config: Optional[dict]
     ):
         
-        self.model = model_ckpt_loader(model, ckpt_path, config)
-        self.config = config
+        self.model = model
         self.inference_func = inference_func
         
     
@@ -207,3 +206,190 @@ class OODEvaluator:
         fpr = fpr_at_95_tpr(out, label)
         
         return roc_auc, prc_auc, fpr
+
+    def evaluate_ood(self, anomaly_score, ood_gts, verbose=True):
+
+        ood_mask = (ood_gts == 1)
+        ind_mask = (ood_gts == 0)
+
+        ood_out = -1 * anomaly_score[ood_mask]
+        ind_out = -1 * anomaly_score[ind_mask]
+
+        ood_label = np.ones(len(ood_out))
+        ind_label = np.zeros(len(ind_out))
+
+        val_out = np.concatenate((ind_out, ood_out))
+        val_label = np.concatenate((ind_label, ood_label))
+
+        auroc, aupr, fpr = self.calculate_ood_metrics(val_out, val_label)
+
+        if verbose:
+            print(f'Max Logits: AUROC score: {auroc}')
+            print(f'Max Logits: AUPRC score: {aupr}')
+            print(f'Max Logits: FPR@TPR95: {fpr}')
+
+        result = {
+            'auroc': auroc,
+            'aupr': aupr,
+            'fpr95': fpr
+        }
+
+        return result
+
+    def compute_max_logit_scores(self, loader, device=torch.device('cpu'), return_preds=False, upper_limit=2000):
+    
+        anomaly_score = []
+        ood_gts = []
+        predictions = []
+        jj = 0
+        for x, y in tqdm(loader, desc="Dataset Iteration"):
+            
+            if jj >= upper_limit:
+                break
+            jj += 1
+            
+            x = x.to(device)
+            y = y.to(device)
+
+            ood_gts.extend([y.cpu().numpy()])
+
+            logits = self.get_logits(x)  # -> (batch_size, 19, H, W)
+
+            max_logit, preds = logits[:,:19,:,:].max(dim=1) # eliminate background predicted logit
+            
+            if return_preds:
+                predictions.extend([preds.cpu().numpy()])
+            
+            anomaly_score.extend([max_logit.cpu().numpy()])
+
+        ood_gts = np.array(ood_gts)
+        anomaly_score = np.array(anomaly_score)
+        
+        if return_preds:
+            predictions = np.array(predictions)
+            return anomaly_score, ood_gts, predictions 
+        
+        return anomaly_score, ood_gts
+
+    def log_to_wandb(
+        self, 
+        project_name, 
+        run_name, 
+        imgs, 
+        ood_gts, 
+        preds,
+        anomaly_score,
+        class_names,
+        metrics,
+    ):
+        
+        logger = wandb.init(project=project_name, name=run_name)
+
+        self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger)
+        self.log_id_maps(imgs, preds, class_names)
+        wandb.log({
+                'OOD_test/AUROC': metrics['auroc'],
+                'OOD_test/AUPR': metrics['aupr'],
+                'OOD_test/FPR95': metrics['fpr95'],
+            })
+
+        wandb.finish()
+
+    def log_id_maps(self, imgs, preds, class_names, logger, y=None, upper_limit=100):
+    
+        if isinstance(class_names, list):
+            class_labels = {}
+            for i in range(len(class_names)):
+                class_labels[i] = class_names[i]
+        else:
+            class_labels = class_names
+        
+        num_samples = imgs.shape[0]
+        seg_logs = []
+        for i in range(num_samples):
+            
+            if i >= upper_limit:
+                break
+            
+            mask = {
+                'predictions': {
+                    'mask_data': preds[i].squeeze(),
+                    'class_labels': class_labels
+                },
+            }
+            if y is not None:
+                mask['ground_truth'] = {
+                    'mask_data': y[i],
+                    'class_labels': class_labels
+                }
+            
+            seg_logs.extend([wandb.Image(imgs[i], masks=mask)])
+        
+        logger.log({'ID/predictions': seg_logs})
+
+    def log_anomaly_maps(self, imgs, scores, y, logger, threshold=0.5, upper_limit=100):
+    
+        scores_min = scores.min()
+        scores_max = scores.max()
+
+        scores_norm = (scores - scores_min) / (scores_max - scores_min) 
+
+        predictions = np.zeros_like(scores_norm)
+        predictions[scores_norm > threshold] = 1
+
+        num_samples = scores.shape[0]    
+        
+        novel_logs = []
+        novel_table = wandb.Table(columns=['ID', 'Image'])
+
+        for i in range(num_samples):
+
+            if i >= upper_limit:
+                break
+
+            novel_mask = {
+                'predictions': {
+                    'mask_data': predictions[i].squeeze(),
+                    'class_labels': {0: 'ID', 1: 'Novel'}
+                },
+                'ground_truth': {
+                    'mask_data': y[i].squeeze(),
+                    'class_labels': {0: 'ID', 1: 'Novel', 255: 'background'}
+                }
+            }
+            wandb_image = wandb.Image(imgs[i].squeeze(), masks=novel_mask)
+            
+            novel_logs.extend([wandb_image])
+            novel_table.add_data(i, wandb_image)
+
+            fig = plt.figure(constrained_layout=True, figsize=(20, 14))
+
+            ax = fig.subplot_mosaic(
+                [['image', 'score']]
+            )
+
+            ax['image'].imshow(imgs[i].squeeze())
+            ax['image'].set_title('Original Image')
+
+            ax['score'].imshow(scores_norm[i].squeeze())
+            ax['score'].set_title('Anomaly Scores')
+
+            logger.log({
+                f'OOD_P_MAPS/image_{i}': plt
+            })
+
+        logger.log({
+            'tables/predictions_ood': novel_table,
+            'OOD/seg_vis': novel_logs
+        })
+    
+    def get_imgs(self, dataset, image_mean, image_std):
+
+        imgs = []
+        for i in range(len(dataset)):
+            x, _ = dataset[i]
+            imgs.extend([unnormalize_tensor(x, np.array(image_mean), np.array(image_std)).cpu().permute(1, 2, 0).numpy()])
+
+        imgs = np.array(imgs)
+
+        return imgs
