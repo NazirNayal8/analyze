@@ -286,7 +286,7 @@ class OODEvaluator:
         logger = wandb.init(project=project_name, name=run_name)
 
         self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger)
-        self.log_id_maps(imgs, preds, class_names)
+        self.log_id_maps(imgs, preds, class_names, logger=logger)
         wandb.log({
                 'OOD_test/AUROC': metrics['auroc'],
                 'OOD_test/AUPR': metrics['aupr'],
