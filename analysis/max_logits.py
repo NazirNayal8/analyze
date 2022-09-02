@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from torch.utils.data import DataLoader
-from typing import Callable, Optional
+from typing import Callable
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
 
 import wandb
-from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
+from sklearn.metrics import roc_curve, auc, average_precision_score
 from ood_metrics import fpr_at_95_tpr
 
 from .utils import unnormalize_tensor
@@ -201,7 +201,6 @@ class OODEvaluator:
         fpr, tpr, _ = roc_curve(label, out)
 
         roc_auc = auc(fpr, tpr)
-        precision, recall, _ = precision_recall_curve(label, out)
         prc_auc = average_precision_score(label, out)
         fpr = fpr_at_95_tpr(out, label)
         
@@ -220,6 +219,9 @@ class OODEvaluator:
 
         val_out = np.concatenate((ind_out, ood_out))
         val_label = np.concatenate((ind_label, ood_label))
+        
+        if verbose:
+            print(f"Calculating Metrics for {len(val_out)} Points ...")
 
         auroc, aupr, fpr = self.calculate_ood_metrics(val_out, val_label)
 
