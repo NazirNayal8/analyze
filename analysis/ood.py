@@ -213,6 +213,9 @@ class OODEvaluator:
         return roc_auc, prc_auc, fpr
 
     def evaluate_ood(self, anomaly_score, ood_gts, verbose=True):
+        
+        ood_gts = ood_gts.squeeze()
+        anomaly_score = anomaly_score.squeeze()
 
         ood_mask = (ood_gts == 1)
         ind_mask = (ood_gts == 0)
@@ -295,7 +298,7 @@ class OODEvaluator:
         logger = wandb.init(project=project_name, name=run_name)
 
         self.log_anomaly_maps(imgs, anomaly_score, ood_gts, logger=logger, upper_limit=upper_limit)
-        
+
         if preds is not None:
             self.log_id_maps(imgs, preds, class_names, y=None, logger=logger, upper_limit=upper_limit)
         
