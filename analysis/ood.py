@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from typing import Callable
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
@@ -14,6 +14,7 @@ from torchvision import transforms
 import wandb
 from sklearn.metrics import roc_curve, auc, average_precision_score
 from ood_metrics import fpr_at_95_tpr
+from easydict import EasyDict as edict
 
 from .utils import unnormalize_tensor
 
@@ -247,6 +248,52 @@ class OODEvaluator:
         }
 
         return result
+    
+    def evaluate_ood_bootstrapped(
+        self,
+        dataset,
+        ratio,
+        trials,
+        device=torch.device('cpu'),
+        batch_size=1,
+        num_workers=10,
+    ):
+        results = edict()
+
+        dataset_size = len(dataset)
+        sample_size = int(dataset_size * ratio)
+        
+        for i in range(trials):
+
+            indices = np.random.choice(np.arange(dataset_size), sample_size, replace=False)
+            loader = DataLoader(Subset(dataset, indices), batch_size=batch_size, num_workers=num_workers)
+
+            anomaly_score, ood_gts = self.compute_anomaly_scores(
+                loader=loader,
+                device=device,
+                return_preds=False
+            )
+
+            metrics = self.evaluate_ood(
+                anomaly_score=anomaly_score,
+                ood_gts=ood_gts,
+                verbose=False
+            )
+
+            for k, v in metrics.items():
+                if k not in results:
+                    results[k] = []
+                results[k].extend([v])
+
+        means = edict()
+        stds = edict()
+        for k, v in results.items():
+            
+            values = np.array(v)
+            means[k] = values.mean() * 100.0
+            stds[k] = values.std() * 100.0
+        
+        return means, stds
 
     def compute_anomaly_scores(
         self, 
