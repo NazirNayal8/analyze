@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from typing import Callable
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
+from torchvision import transforms
 
 import wandb
 from sklearn.metrics import roc_curve, auc, average_precision_score
@@ -238,8 +239,18 @@ class OODEvaluator:
 
         return result
 
-    def compute_max_logit_scores(self, loader, device=torch.device('cpu'), return_preds=False, upper_limit=450):
-    
+    def compute_max_logit_scores(
+        self, 
+        loader, 
+        device=torch.device('cpu'), 
+        return_preds=False,
+        use_gaussian_smoothing=False, 
+        upper_limit=450
+    ):
+        
+        if use_gaussian_smoothing:
+            gaussian_smoothing = transforms.GaussianBlur(7, sigma=1)
+
         anomaly_score = []
         ood_gts = []
         predictions = []
@@ -262,6 +273,9 @@ class OODEvaluator:
             if return_preds:
                 predictions.extend([preds.cpu().numpy()])
             
+            if use_gaussian_smoothing:
+                max_logit = gaussian_smoothing(max_logit.unsqueeze(0)).squeeze(0)
+
             anomaly_score.extend([-max_logit.cpu().numpy()])
 
         ood_gts = np.array(ood_gts)

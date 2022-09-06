@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from typing import Callable
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
+from torchvision import transforms
 
 import wandb
 from sklearn.metrics import roc_curve, auc, average_precision_score
@@ -247,12 +248,22 @@ class OODEvaluator:
 
         return result
 
-    def compute_anomaly_scores(self, loader, device=torch.device('cpu'), return_preds=False, upper_limit=450):
+    def compute_anomaly_scores(
+        self, 
+        loader, 
+        device=torch.device('cpu'), 
+        return_preds=False,
+        use_gaussian_smoothing=False, 
+        upper_limit=450
+    ):
     
         anomaly_score = []
         ood_gts = []
         predictions = []
         jj = 0
+        if use_gaussian_smoothing:
+            gaussian_smoothing = transforms.GaussianBlur(7, sigma=1)
+
         for x, y in tqdm(loader, desc="Dataset Iteration"):
             
             if jj >= upper_limit:
@@ -266,6 +277,9 @@ class OODEvaluator:
 
             score = self.get_anomaly_score(x)  # -> (batch_size, 19, H, W)
             
+            if use_gaussian_smoothing:
+                score = gaussian_smoothing(score.unsqueeze(0)).squeeze(0)
+
             if return_preds:
                 logits = self.get_logits(x)
                 _, preds = logits[:,:19,:,:].max(dim=1)
