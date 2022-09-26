@@ -14,6 +14,7 @@ def show_image(img, title=""):
         if len(ready_img.shape) == 3 and ready_img.shape[0] == 3:
             ready_img = ready_img.permute(1, 2, 0)
         ready_img = ready_img.cpu()
+
     elif isinstance(img, np.ndarray):
         ready_img = img.copy()
         if len(ready_img.shape) == 3 and ready_img.shape[0] == 3:
@@ -21,7 +22,8 @@ def show_image(img, title=""):
     else:
         raise ValueError(
             f"Unsupported type for image: ({type(img)}), only supports numpy arrays and Pytorch Tensors")
-
+    print(type(ready_img), ready_img.shape)
+    print(ready_img.dtype)
     plt.show(ready_img)
     plt.xticks([])
     plt.yticks([])
