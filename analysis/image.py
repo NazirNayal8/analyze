@@ -75,7 +75,7 @@ def show_anomaly_map_at_tpr_threshold(map, ood_gts, tpr_threshold, title="", voi
     anomaly_map[ood_gts == void_id] = 0
 
     if not suppress_image:
-        show_image(anomaly_map, title=title)
+        show_image(anomaly_map, title=f"{title} - threshold = {np.round(threshold, 4)}")
 
     return anomaly_map
 
