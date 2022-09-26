@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
+import plotly.express as px
 
 from .metrics import find_tpr_threshold
+
+plt.rcParams['axes.grid'] = False
+plt.rcParams['image.cmap'] = 'viridis'
 
 
 def show_image(img, title=""):
@@ -28,6 +32,29 @@ def show_image(img, title=""):
     plt.yticks([])
     plt.title(title)
     plt.show()
+
+def show_image_plotly(img, title=""):
+    """
+    Helper function for showing images
+    """
+    if isinstance(img, torch.Tensor):
+        ready_img = img.clone()
+        if len(ready_img.shape) == 3 and ready_img.shape[0] == 3:
+            ready_img = ready_img.permute(1, 2, 0)
+        ready_img = ready_img.cpu()
+
+    elif isinstance(img, np.ndarray):
+        ready_img = img.copy()
+        if len(ready_img.shape) == 3 and ready_img.shape[0] == 3:
+            ready_img = ready_img.transpose(1, 2, 0)
+    else:
+        raise ValueError(
+            f"Unsupported type for image: ({type(img)}), only supports numpy arrays and Pytorch Tensors")
+    
+    fig = px.imshow(ready_img, color_continuous_scale='viridis', title=title)
+    fig.update_xaxes(showticklabels=False)
+    fig.update_yaxes(showticklabels=False)
+    fig.show()
 
 
 def show_anomaly_map_without_void(map, ood_gts, title="Anomaly Score without Void", void_id=255, suppress_image=False):
