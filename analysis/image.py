@@ -22,9 +22,8 @@ def show_image(img, title=""):
     else:
         raise ValueError(
             f"Unsupported type for image: ({type(img)}), only supports numpy arrays and Pytorch Tensors")
-    print(type(ready_img), ready_img.shape)
-    print(ready_img.dtype)
-    plt.show(ready_img)
+    
+    plt.imshow(ready_img)
     plt.xticks([])
     plt.yticks([])
     plt.title(title)
