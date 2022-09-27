@@ -74,7 +74,7 @@ def show_anomaly_map_without_void(map, ood_gts, title="Anomaly Score without Voi
 
     return anomaly_map
 
-def show_anomaly_map_at_tpr_threshold(map, ood_gts, tpr_threshold, title="", void_id=255, suppress_image=False):
+def show_anomaly_map_at_tpr_threshold(map, ood_gts, tpr_threshold, title="", void_id=255, suppress_image=False, plotly=False):
     """
     Shows and returns a discretized anomaly map where OOD pixels are chosen for the threshold that
     achieves tpr_threshold. For example, when tpr_threshold = 0.95, OOD pixels will be chosen for a 
@@ -102,7 +102,10 @@ def show_anomaly_map_at_tpr_threshold(map, ood_gts, tpr_threshold, title="", voi
     anomaly_map[ood_gts == void_id] = 0
 
     if not suppress_image:
-        show_image(anomaly_map, title=f"{title} - threshold = {np.round(threshold, 4)}")
+        if plotly:
+            show_image_plotly(anomaly_map, title=f"{title} - threshold = {np.round(threshold, 4)}")    
+        else:
+            show_image(anomaly_map, title=f"{title} - threshold = {np.round(threshold, 4)}")
 
     return anomaly_map
 
