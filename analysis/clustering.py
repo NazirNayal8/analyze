@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.preprocessing import normalize
 from hdbscan import HDBSCAN
 from tqdm.notebook import tqdm
+
 from yellowbrick.cluster import KElbowVisualizer
 # from umap import UMAP
 
