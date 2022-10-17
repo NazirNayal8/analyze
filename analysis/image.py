@@ -33,6 +33,46 @@ def show_image(img, title=""):
     plt.title(title)
     plt.show()
 
+
+def show_images(imgs, titles, main_title="", figsize=(8, 10), fontsize=18):
+    """
+    Plot multiple images
+    """
+    ready_imgs = []
+    for img in imgs:
+
+        if isinstance(img, torch.Tensor):
+            ready_img = img.clone()
+            if len(ready_img.shape) == 3 and ready_img.shape[0] == 3:
+                ready_img = ready_img.permute(1, 2, 0)
+            ready_img = ready_img.cpu()
+
+        elif isinstance(img, np.ndarray):
+            ready_img = img.copy()
+            if len(ready_img.shape) == 3 and ready_img.shape[0] == 3:
+                ready_img = ready_img.transpose(1, 2, 0)
+        else:
+            raise ValueError(
+                f"Unsupported type for image: ({type(img)}), only supports numpy arrays and Pytorch Tensors")
+
+        ready_imgs.extend([ready_img])
+    
+    fig = plt.figure(constrained_layout=True, figsize=figsize)
+    fig.suptitle(main_title, fontsize=fontsize)
+
+    ax = fig.subplot_mosaic(
+        [titles]
+    )
+
+    for i, t in enumerate(titles):
+        ax[t].imshow(imgs[i])
+        ax[t].set_title(t)
+        ax[t].set_xticks([])
+        ax[t].set_yticks([])
+
+    plt.show()
+    plt.close(fig)
+
 def show_image_plotly(img, title=""):
     """
     Helper function for showing images
