@@ -48,7 +48,7 @@ class SemSegAnalyzer:
             dummy_extension = torch.zeros(
                 logits.shape[0], 1, logits.shape[2], logits.shape[3]).to(device)
             logits = torch.cat([logits, dummy_extension], dim=1)
-
+            print(logits.shape, y.shape)
             mIoU_metric.update(logits, y)
 
         return mIoU_metric.cpu().compute()
