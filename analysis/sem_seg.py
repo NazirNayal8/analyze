@@ -47,7 +47,7 @@ class SemSegAnalyzer:
                 logits = self.get_logits(x, **kwargs)
             
             if logits.shape[-2:] != y.shape[-2:]:
-                logits = F.interpolate(logits, size=y.shape[-2:], mode='bilinear')
+                logits = F.interpolate(logits, size=y.shape[-2:], mode='bilinear', align_corners=True)
 
             dummy_extension = torch.zeros(
                 logits.shape[0], 1, logits.shape[2], logits.shape[3]).to(device)
