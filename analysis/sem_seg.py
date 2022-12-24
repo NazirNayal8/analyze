@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from typing import Callable
@@ -35,7 +36,7 @@ class SemSegAnalyzer:
         loader = DataLoader(dataset, batch_size=batch_size,
                             num_workers=num_workers)
         mIoU_metric = JaccardIndex(
-            task='multiclass', num_classes=num_classes, ignore_index=ignore_index).to(device)
+            task='multiclass', num_classes='num_classes', ignore_index=ignore_index).to(device)
 
         for x, y in tqdm(loader):
 
@@ -44,11 +45,14 @@ class SemSegAnalyzer:
             with torch.no_grad():
 
                 logits = self.get_logits(x, **kwargs)
+            
+            if logits.shape[-2:] != y.shape[-2:]:
+                logits = F.interpolate(logits, size=y.shape[-2:], mode='bilinear')
 
             dummy_extension = torch.zeros(
                 logits.shape[0], 1, logits.shape[2], logits.shape[3]).to(device)
             logits = torch.cat([logits, dummy_extension], dim=1)
-            print(logits.shape, y.shape)
+            
             mIoU_metric.update(logits, y)
 
         return mIoU_metric.cpu().compute()
