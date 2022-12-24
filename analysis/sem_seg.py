@@ -36,7 +36,7 @@ class SemSegAnalyzer:
         loader = DataLoader(dataset, batch_size=batch_size,
                             num_workers=num_workers)
         mIoU_metric = JaccardIndex(
-            task='multiclass', num_classes='num_classes', ignore_index=ignore_index).to(device)
+            task='multiclass', num_classes=num_classes, ignore_index=ignore_index).to(device)
 
         for x, y in tqdm(loader):
 
