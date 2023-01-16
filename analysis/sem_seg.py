@@ -27,6 +27,7 @@ class SemSegAnalyzer:
         dataset,
         num_classes,
         ignore_index,
+        return_per_class=False,
         batch_size=1,
         device=torch.device('cpu'),
         num_workers=1,
@@ -37,6 +38,10 @@ class SemSegAnalyzer:
                             num_workers=num_workers)
         mIoU_metric = JaccardIndex(
             task='multiclass', num_classes=num_classes, ignore_index=ignore_index).to(device)
+
+        if return_per_class:
+            mIoU_metric_per_class = JaccardIndex(
+            task='multiclass', num_classes=num_classes, ignore_index=ignore_index, average=None).to(device)
 
         for x, y in tqdm(loader):
 
@@ -54,5 +59,10 @@ class SemSegAnalyzer:
             logits = torch.cat([logits, dummy_extension], dim=1)
             
             mIoU_metric.update(logits, y)
+            if return_per_class:
+                mIoU_metric_per_class.update(logits, y)
 
+        if return_per_class:
+            return mIoU_metric.cpu().compute(), mIoU_metric_per_class.cpu().compute()
+            
         return mIoU_metric.cpu().compute()
